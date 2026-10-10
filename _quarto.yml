@@ -1,0 +1,36 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Harish Mohankumar | Health Data Engineering"
+  description: "OMOP CDM v5.4, OHDSI Broadsea, and RWE Engineering Portfolio"
+  site-url: "[https://harishedu11-hash.github.io/omop-showcase](https://harishedu11-hash.github.io/omop-showcase)"
+  navbar:
+    title: "Harish Mohankumar"
+    left:
+      - text: "Overview"
+        href: index.qmd
+      - text: "Case 1: Architecture"
+        href: implementation-1.qmd
+      - text: "Case 2: Causal Trial"
+        href: implementation-2.qmd
+      - text: "Case 3: Precision Oncology"
+        href: implementation-3.qmd
+      - text: "Glossary"
+        href: glossary.qmd
+    right:
+      - icon: github
+        text: "harishedu11-hash"
+        href: "[https://github.com/harishedu11-hash](https://github.com/harishedu11-hash)"
+        aria-label: "GitHub Profile"
+
+format:
+  html:
+    theme:
+      light: [cosmo, styles.scss]
+    toc: true
+    toc-depth: 3
+    smooth-scroll: true
+    code-copy: true
+    highlight-style: github

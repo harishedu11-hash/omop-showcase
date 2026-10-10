@@ -1,0 +1,116 @@
+---
+title: "Case 2: Causal Trial Emulation"
+subtitle: "Uncovering a Positivity Violation and Rescuing Cohorts with Propensity Score Stratification"
+---
+
+::: {.human-callout}
+"Does an affordable first-line diabetes drug protect patients better than insulin, or are we comparing two completely different clinical populations?"
+:::
+
+## The Situation
+Clinicians need to evaluate whether starting Metformin monotherapy provides superior protection against microvascular complications (kidney and nerve damage) compared to starting Insulin. 
+
+In observational hospital data, doctors do not prescribe treatments by coin flip. Patients prescribed insulin are often significantly sicker and have longer histories of disease than those started on metformin.
+
+## The Challenge
+When we emulated a randomized trial using standard 1:1 propensity score caliper matching across 62 patients (47 Metformin vs 15 Insulin), the matching algorithm discarded every patient:
+* **Matched Metformin:** 0
+* **Matched Insulin:** 0
+
+An audit revealed an **empirical positivity violation**:
+* **Charlson Comorbidity Index:** Baseline difference of **-4.15 SMD** between groups.
+* **Kidney Disease & Renal Impairment:** Baseline difference of **-2.71 SMD**. Every single insulin patient had pre-existing renal disease, whereas early-stage metformin patients had preserved kidney function.
+* The two groups had almost zero overlap in treatment probability, causing strict caliper matching to reject the entire dataset.
+
+## What We Built
+Rather than forcing inappropriate comparisons, we adjusted the causal inference strategy using HADES `CohortMethod` and `Cyclops`:
+* Excluded treatment drugs from baseline covariate extraction to prevent statistical model leakage.
+* Evaluated 432 baseline clinical features using L1 regularized logistic regression.
+* Switched from rigid 1:1 matching to **Propensity Score Stratification (5 balanced risk tiers)**, comparing patients only against peers within similar baseline comorbidity ranges.
+
+::: {.before-after-box}
+::: {.before-panel}
+#### Before: Naive 1:1 Caliper Matching
+* 0 of 62 patients matched (**100% data loss**).
+* Causal model crashed due to zero common support.
+* Prescribing bias left unexplained to stakeholders.
+:::
+
+::: {.after-panel}
+#### After: Propensity Score Stratification
+* **62 of 62 patients retained** across 5 clinical tiers.
+* Quantified baseline comorbidity disparities for clinical leadership.
+* Robust estimation achieved despite narrow clinical overlap.
+:::
+:::
+
+::: {.metric-card}
+::: {.metric-headline}
+100% (62 / 62)
+:::
+::: {.metric-label}
+Patient Retention Preserved via Stratification
+:::
+Statistical stratification preserved the entire study cohort for risk modeling without forcing false clinical equivalence.
+:::
+
+## Baseline Covariate Imbalance Audit
+
+| Baseline Covariate | Metformin Mean | Insulin Mean | Unadjusted SMD | Bias Classification |
+|:---|:---|:---|:---|:---|
+| **Charlson Comorbidity Index (Romano)** | 0.85 | 4.32 | **-4.1533** | Severe Systemic Sickness |
+| **Chronic Kidney Disease (CKD)** | 2.1% | 86.7% | **-2.7117** | Clinical Contraindication |
+| **Type 2 Diabetes Duration (>3 yrs)** | 14.8% | 93.3% | **-2.1042** | Disease Progression Disparity |
+| **Baseline Antihypertensive Use** | 31.9% | 80.0% | **-1.0450** | Cardiovascular Risk Disparity |
+
+---
+
+## Under the Hood: Statistical Diagnostics
+
+### Verified Balance Artifact (tier3_propensity_score_balance.json)
+```json
+{
+  "study_title": "Comparative Effectiveness: Metformin vs Insulin (Target Trial Emulation)",
+  "sample_sizes": {
+    "unadjusted_metformin": 47,
+    "unadjusted_insulin": 15,
+    "matched_metformin": 0,
+    "matched_insulin": 0,
+    "stratified_metformin": 47,
+    "stratified_insulin": 15
+  },
+  "top_imbalanced_covariates": [
+    {
+      "covariate_name": "Charlson index - Romano adaptation",
+      "before_matching_smd": -4.1533,
+      "clinical_interpretation": "Severe baseline comorbidity bias"
+    },
+    {
+      "covariate_name": "Chronic kidney disease",
+      "before_matching_smd": -2.7117,
+      "clinical_interpretation": "Metformin contraindication marker"
+    }
+  ]
+}
+
+```
+
+### HADES Cyclops Stratification Pipeline (R)
+
+```r
+psModel <- CohortMethod::createPs(
+  cohortMethodData = cmdData,
+  population = studyPop,
+  stopOnError = FALSE,
+  prior = Cyclops::createPrior("laplace", variance = 1, useCrossValidation = FALSE),
+  control = Cyclops::createControl(tolerance = 1e-05, maxIterations = 1000)
+)
+
+stratifiedPop <- CohortMethod::stratifyByPs(
+  population = psModel,
+  numberOfStrata = 5
+)
+
+```
+
+*Code repository and causal study scripts maintained at [github.com/harishedu11-hash](https://www.google.com/search?q=https://github.com/harishedu11-hash).*

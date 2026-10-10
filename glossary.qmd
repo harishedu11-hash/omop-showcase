@@ -1,0 +1,31 @@
+---
+title: "Plain-Language Glossary"
+subtitle: "De-jargoning Key Concepts in Health Data Science and OMOP"
+---
+
+### OMOP (Observational Medical Outcomes Partnership)
+An international open data standard that defines a common schema and terminology mapping system for organizing health records worldwide.
+
+### CDM (Common Data Model)
+A standardized database blueprint. Think of it as a universal filing system where patient demographics, drug exposures, and diagnoses live in the exact same tables across every hospital.
+
+### OHDSI (Observational Health Data Sciences and Informatics)
+A global multi-stakeholder open-science community (spanning academia, industry, and healthcare systems) that maintains the OMOP CDM and develops open-source analytics tools.
+
+### ETL (Extract, Transform, Load)
+The data engineering process of extracting records from hospital source databases, cleaning anomalies, and transforming them into the OMOP CDM standard structure.
+
+### Athena Vocabularies
+The master medical dictionary system used by OMOP. It harmonizes over 10 million clinical codes from systems like SNOMED, RxNorm, LOINC, and ICD-10 into standard concept entries.
+
+### Concept ID
+A unique integer identifying a precise medical idea. For example, concept ID `1503297` universally represents Metformin, regardless of how a local hospital recorded the prescription.
+
+### Propensity Score
+A statistical value (from 0 to 1) representing a patient's probability of receiving a specific treatment given their baseline health characteristics. Used to balance treatment arms in non-randomized observational data.
+
+### Positivity Violation
+A circumstance in observational data where certain patient profiles have zero real-world probability of receiving a specific treatment (e.g., when a medication is strictly contraindicated for patients with renal disease). Recognizing positivity violations prevents biased or misleading causal comparisons.
+
+### Episode Tables (`cdm.episode` & `cdm.episode_event`)
+Specialized tables in OMOP CDM v5.4 that organize individual hospital visits into continuous clinical episodes, such as disease progression timelines or chemotherapy lines of therapy.

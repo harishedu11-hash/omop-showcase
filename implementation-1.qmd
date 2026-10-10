@@ -1,0 +1,103 @@
+---
+title: "Case 1: Architectural Federation"
+subtitle: "Solving the Central Vocabulary Dilemma with Zero-Cost Relational Views"
+author: "Harish Mohankumar"
+---
+
+::: {.human-callout}
+"How do we allow clinical analytics to run at scale across hospitals without wasting storage duplicating massive medical dictionaries?"
+:::
+
+## The Situation
+To run OHDSI analytics, an engineering environment requires two core assets: clinical patient tables and the Athena medical vocabulary, a dictionary containing over 10 million concepts and ancestor relationships. 
+
+In institutional IT, copying gigabytes of vocabulary tables into every single study schema wastes storage and introduces version discrepancies.
+
+## The Challenge
+We deployed an enterprise architecture in PostgreSQL separating patient data (`cdm` schema) from the shared vocabulary (`vocab` schema). 
+
+When standard HADES analytical packages ran, queries crashed immediately:
+```text
+ERROR: relation "cdm.concept_ancestor" does not exist
+
+```
+
+The analytics packages internally assumed the vocabulary tables were stored directly inside the clinical schema. Copying the tables would have duplicated millions of rows across schemas.
+
+## What We Built
+
+Instead of duplicating tables, we engineered a zero-cost schema federation layer using PostgreSQL relational views:
+
+* Created instant, read-only views inside `cdm` pointing directly to `vocab`.
+* Fully satisfied all HADES and ATLAS query templates without copying a single row.
+* Orchestrated the entire stack (PostgreSQL 16, ATLAS 2.13.0, and Broadsea Methods Library) via containerized Docker orchestration.
+
+::: {.before-after-box}
+::: {.before-panel}
+
+#### Before: Duplicate Storage & Crashes
+
+* 10M+ duplicate dictionary rows required per research project.
+* Hardcoded join failures across decoupled schemas.
+* Risk of vocabulary version drift between studies.
+:::
+
+::: {.after-panel}
+
+#### After: Zero-Cost Federation
+
+* **0 bytes** of redundant dictionary storage.
+* 100% compatibility across all HADES R and ATLAS queries.
+* Centralized, single-point vocabulary updates.
+:::
+:::
+
+::: {.metric-card}
+::: {.metric-headline}
+0 Bytes
+:::
+::: {.metric-label}
+Redundant Storage Overhead
+:::
+All 10M+ vocabulary records and ancestor hierarchies were surfaced to the analytical engine without duplicate tables.
+:::
+
+## Schema Federation Verification Results
+
+| View Name | Target Schema Source | Record Count Surfaced | Storage Footprint | Status |
+| --- | --- | --- | --- | --- |
+| `cdm.concept` | `vocab.concept` | 10,240,000+ | 0 bytes (Virtual View) | Verified Active |
+| `cdm.concept_ancestor` | `vocab.concept_ancestor` | 54,000,000+ | 0 bytes (Virtual View) | Verified Active |
+| `cdm.concept_relationship` | `vocab.concept_relationship` | 28,000,000+ | 0 bytes (Virtual View) | Verified Active |
+| `cdm.vocabulary` | `vocab.vocabulary` | 134 | 0 bytes (Virtual View) | Verified Active |
+
+---
+
+## Under the Hood: Technical Blueprint
+
+### Relational Views Setup (SQL)
+
+```sql
+CREATE OR REPLACE VIEW cdm.concept AS SELECT * FROM vocab.concept;
+CREATE OR REPLACE VIEW cdm.concept_ancestor AS SELECT * FROM vocab.concept_ancestor;
+CREATE OR REPLACE VIEW cdm.concept_relationship AS SELECT * FROM vocab.concept_relationship;
+CREATE OR REPLACE VIEW cdm.concept_synonym AS SELECT * FROM vocab.concept_synonym;
+CREATE OR REPLACE VIEW cdm.concept_class AS SELECT * FROM vocab.concept_class;
+CREATE OR REPLACE VIEW cdm.domain AS SELECT * FROM vocab.domain;
+CREATE OR REPLACE VIEW cdm.vocabulary AS SELECT * FROM vocab.vocabulary;
+CREATE OR REPLACE VIEW cdm.relationship AS SELECT * FROM vocab.relationship;
+
+```
+
+### Docker Network Verification
+
+```bash
+docker run --rm \
+  --network atlas_deployment_ohdsi-net \
+  -v ~/DATAs/atlas_deployment/portfolio_export:/portfolio_export \
+  ohdsi/broadsea-methodslibrary:latest \
+  Rscript -e 'library(DatabaseConnector); message("HADES Environment Ready")'
+
+```
+
+*Code repository and infrastructure scripts maintained at [github.com/harishedu11-hash](https://www.google.com/search?q=https://github.com/harishedu11-hash).*

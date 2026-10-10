@@ -1,0 +1,105 @@
+---
+title: "Health Data Reimagined: The OMOP CDM Architecture"
+subtitle: "Transforming Fragmented Hospital Records into Verifiable Global Evidence"
+author: "Harish Mohankumar"
+page-layout: article
+---
+
+::: {.hero-banner}
+# Translating the Chaos of Clinical Data
+Clinical records live in hundreds of incompatible dialects across thousands of hospitals. 
+By engineering an **OMOP Common Data Model** foundation, we turned disconnected patient records into reproducible clinical insights.
+
+**Lead Engineer:** [Harish Mohankumar](https://github.com/harishedu11-hash) | **Platform:** OMOP CDM v5.4, PostgreSQL 16, OHDSI ATLAS / WebAPI 2.13.0, HADES (R)
+:::
+
+## 1. The Multi-Billion-Dollar Translation Problem
+
+Every clinic, health system, and diagnostic laboratory records patient care differently. 
+
+When a clinician in Boston writes that a patient has "Type 2 Diabetes," the electronic health record might store it as an internal billing code like `ICD-10 E11.9`. In London, the same condition is logged as an NHS read-code. In Munich, it lives inside an unstructured clinical narrative.
+
+The raw data exists, but the systems cannot talk to each other.
+
+When medical leaders need to answer an urgent question, such as *"Does Medication A protect diabetic patients from kidney failure better than Medication B?"* data engineers spend months per site manually cleaning files and reconciling custom tables. By the time results arrive, budgets are spent and clinical opportunities are lost.
+
+---
+
+## 2. The Solution: The Shipping Container Analogy
+
+Before 1956, international shipping was slow, fragile, and inefficient. Goods arrived at ports in wooden barrels, woven sacks, and custom crates. Hundreds of dockworkers spent days unpacking and restowing cargo by hand for every unique ship hold.
+
+Global trade changed forever with a single innovation: **the intermodal shipping container**.
+
+::: {.analogy-container}
+It does not matter whether a container holds electronics, automotive parts, or fresh fruit. Because the dimensions, steel castings, and crane locking mechanisms are standardized worldwide, any ship can carry it, any crane can hoist it, and any train can haul it without opening the doors.
+:::
+
+**The OMOP Common Data Model (CDM) is that shipping container for health data.**
+
+Maintained by the international **OHDSI** (Observational Health Data Sciences and Informatics) open-science community, OMOP achieves two foundational goals:
+
+1. **Structural Standardization:** Every patient, encounter, prescription, diagnosis, and lab result lives in the exact same table with identical column names, everywhere in the world.
+2. **Semantic Standardization:** Messy local billing codes and proprietary brand names are mapped into a single, unambiguous concept ID. "Glucophage," "Metformin Hydrochloride," and international brand names all map to concept ID `1503297`.
+
+---
+
+## 3. The Pipeline: From Raw Data to Causal Answers
+
+```{mermaid}
+flowchart LR
+    A["Raw Clinical Records<br/>• Local EHR Tables<br/>• Billing Claims<br/>• Genomic Panels"] --> B["ETL Transformation<br/>• Data Cleansing<br/>• Date Reconciliation<br/>• Deduplication"]
+    B --> C["Athena Vocabularies<br/>• SNOMED (Conditions)<br/>• RxNorm (Drugs)<br/>• ClinVar (Genomics)"]
+    C --> D["OMOP CDM v5.4<br/>• Standard Person<br/>• Standard Drug/Condition<br/>• Episodes & Events"]
+    D --> E["Causal Evidence<br/>• Trial Emulation<br/>• Survival Analysis<br/>• Safety Profiles"]
+
+```
+
+1. **Raw Records:** Hospital claims, doctor visits, and lab panels arrive in disparate formats.
+2. **ETL Cleansing:** Data pipelines validate date chronologies, remove duplicates, and structure inputs.
+3. **Vocabulary Harmonization:** Standard medical dictionaries (Athena) map raw strings to certified clinical concepts.
+4. **The OMOP Database:** Data is persisted in a relational store (PostgreSQL) governed by standard integrity rules.
+5. **Reproducible Analytics:** Standardized HADES statistical packages evaluate causal questions and safety metrics.
+
+---
+
+## 4. Platform Results & ATLAS Cohort Mapping
+
+The pipeline was verified on our containerized OHDSI ATLAS and WebAPI environment. The table below summarizes the standardized cohorts and vocabulary mapping coverage generated across the CDM:
+
+| Cohort ID | Cohort Name | Target Population | Standard Concept ID | Source Vocabulary | Verified Records |
+| --- | --- | --- | --- | --- | --- |
+| **101** | Metformin Monotherapy | Target Cohort (T) | `1503297` | RxNorm | 47 Patients |
+| **102** | Insulin Initiation | Comparator Cohort (C) | `1596977` | RxNorm | 15 Patients |
+| **103** | Severe Hypoglycemia | Primary Safety Outcome | `432961` | SNOMED | 38 Events |
+| **104** | Diabetic Nephropathy | Microvascular Endpoint | `4055665` | SNOMED | 29 Events |
+| **201** | NSCLC Disease Course | Parent Cancer Episode | `4115276` | SNOMED / mCODE | 14 Patients (28 Ep.) |
+
+---
+
+## 5. Business Payoff
+
+::: {.metric-card}
+::: {.metric-headline}
+Months to Hours
+:::
+::: {.metric-label}
+Time-to-Evidence Acceleration
+:::
+Once health data is transformed to the OMOP CDM, running new epidemiological studies does not require custom SQL engineering. Validated network packages run in hours rather than months.
+:::
+
+* **Collaborative Research Without Data Transfer:** Institutions join international multi-center studies with millions of patient records without sharing sensitive patient-level rows, fully respecting GDPR and HIPAA boundaries.
+* **Audit-Proof Data Governance:** Automated validation via the OHDSI Data Quality Dashboard (DQD) enforces thousands of consistency, plausibility, and completeness checks.
+* **Reusable Analytical Assets:** Every trial emulation, cohort phenotype, and survival analysis script functions as version-controlled code that runs on future database refreshes automatically.
+
+---
+
+## 6. Explore the Implementations
+
+* **[Case 1: Architecture & Zero-Cost Views](https://www.google.com/search?q=implementation-1.qmd)** — Resolving multi-schema vocabulary federation without duplicating 10M+ dictionary rows.
+* **[Case 2: Causal Trial Emulation](https://www.google.com/search?q=implementation-2.qmd)** — Diagnosing an extreme positivity violation and achieving 100% patient retention through propensity score stratification.
+* **[Case 3: Precision Oncology & Genomics](https://www.google.com/search?q=implementation-3.qmd)** — Modeling 235.6 patient-years of biomarker-stratified lung cancer journeys with OMOP v5.4 `EPISODE` tables.
+
+*More health data engineering repositories and pipeline code are available at [github.com/harishedu11-hash](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/harishedu11-hash).*
+

@@ -1,0 +1,103 @@
+/* styles.scss */
+/*-- scss:defaults --*/
+$primary: #0f172a;        /* Deep slate navy */
+$secondary: #0d9488;      /* Clinical teal */
+$body-bg: #fdfdfc;        /* Warm editorial parchment */
+$body-color: #1e293b;     /* High-contrast charcoal text */
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-monospace: "JetBrains Mono", Consolas, Monaco, "Courier New", monospace;
+
+/*-- scss:rules --*/
+.hero-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f8fafc;
+  padding: 3.5rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+
+  h1 {
+    color: #ffffff;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  p.lead {
+    color: #94a3b8;
+    font-size: 1.25rem;
+    max-width: 800px;
+  }
+}
+
+.metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 5px solid $secondary;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  .metric-headline {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: $primary;
+    margin-bottom: 0.25rem;
+  }
+  .metric-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+}
+
+.before-after-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  .before-panel {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 8px;
+    padding: 1.25rem;
+    h4 { color: #9f1239; font-weight: 700; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    ul { margin-bottom: 0; padding-left: 1.25rem; color: #881337; }
+  }
+
+  .after-panel {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    h4 { color: #166534; font-weight: 700; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    ul { margin-bottom: 0; padding-left: 1.25rem; color: #14532d; }
+  }
+}
+
+.human-callout {
+  background: #f8fafc;
+  border-left: 4px solid #3b82f6;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: #334155;
+}
+
+.analogy-container {
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}

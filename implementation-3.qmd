@@ -1,0 +1,121 @@
+---
+title: "Case 3: Precision Oncology"
+subtitle: "Modeling Longitudinal Cancer Journeys and Genomic Biomarkers in OMOP v5.4"
+---
+
+::: {.human-callout}
+"Can standard hospital databases track multi-year cancer progression, treatment lines, and gene mutations without losing clinical context?"
+:::
+
+## The Situation
+Cancer care is non-linear and longitudinal. A patient diagnosed with Non-Small Cell Lung Cancer (NSCLC) undergoes tumor biopsies, molecular genomic testing, lines of systemic therapy, and extended monitoring. 
+
+Traditional relational databases store these events as disconnected billing entries, obscuring clinical context like treatment line and duration.
+
+## The Challenge
+Legacy health record models struggle with oncology because:
+1. Diagnosis codes lack explicit beginning and end dates.
+2. Treatment lines (first-line vs second-line) are not explicitly tracked.
+3. Molecular alterations (*EGFR*, *KRAS*) often remain locked inside free-text pathology reports rather than standardized tables.
+
+## What We Built
+We implemented the **OMOP CDM v5.4 Oncology Extension** and the **mCODE** framework:
+* Modeled disease courses and therapy windows using the `cdm.episode` table, establishing parent disease episodes and linked child first-line treatment regimen episodes.
+* Connected diagnosis encounters to episodes through the `cdm.episode_event` table.
+* Standardized actionable somatic mutations (*EGFR* L858R, *KRAS* G12C, and Wild-Type) in `cdm.measurement` using international ClinVar concepts.
+* Built survival pipelines calculating overall survival follow-up from initial diagnosis across genomic cohorts.
+
+::: {.before-after-box}
+::: {.before-panel}
+#### Before: Flat Encounter Rows
+* Diagnosis codes recorded without disease timelines.
+* Inability to programmatically identify lines of therapy.
+* Molecular testing decoupled from cancer outcomes.
+:::
+
+::: {.after-panel}
+#### After: Two-Tier Episode Hierarchy
+* **28 structured episodes** capturing disease and regimen durations.
+* Actionable ClinVar mutations linked to clinical timelines.
+* **235.6 total patient-years** tracked in survival analysis.
+:::
+:::
+
+::: {.metric-card}
+::: {.metric-headline}
+235.6 Years
+:::
+::: {.metric-label}
+Follow-Up Tracked Across Molecular Biomarkers
+:::
+Patient journeys across EGFR mutated, KRAS mutated, and Wild-Type cohorts tracked cleanly through diagnosis-to-outcome pipelines.
+:::
+
+## Biomarker-Stratified Survival Analysis Results
+
+The survival analysis pipeline evaluated overall survival follow-up across actionable genomic variants:
+
+| Genomic Biomarker Profile | ClinVar Concept ID | Evaluated Patients | Mean Follow-Up (Days) | Median Follow-Up (Days) | Total Person-Years |
+|:---|:---|:---|:---|:---|:---|
+| **EGFR L858R Mutated** | `35918335` | 20 | 1,549.0 | 1,460.5 | **84.82** |
+| **KRAS G12C Mutated** | `35918599` | 18 | 1,561.9 | 1,460.5 | **76.97** |
+| **Wild-Type / Other** | `35918231` | 18 | 1,497.6 | 1,096.0 | **73.80** |
+| **Total Population** | — | **56 Records** | **1,536.2** | **1,460.5** | **235.59** |
+
+---
+
+## Under the Hood: Precision Analytics
+
+### Verified Oncology Export (tier4_precision_oncology_genomics.json)
+```json
+{
+  "tier": "Tier 4: Precision Oncology & Population Genomics Pipeline",
+  "cdm_extension": "OMOP CDM v5.4 Oncology & Genomic Extension",
+  "oncology_episodes": {
+    "cancer_patients": 14,
+    "disease_episodes": 28,
+    "treatment_episodes": 28
+  },
+  "genomic_biomarker_testing": [
+    { "biomarker_name": "EGFR gene p.Leu858Arg (L858R) mutation", "patient_count": 10 },
+    { "biomarker_name": "KRAS gene p.Gly12Cys (G12C) mutation", "patient_count": 9 },
+    { "biomarker_name": "Biomarker Wild Type / Negative", "patient_count": 9 }
+  ],
+  "biomarker_stratified_overall_survival": [
+    { "biomarker": "EGFR L858R Mutated", "patients": 20, "mean_os_days": 1549.0, "person_years": 84.82 },
+    { "biomarker": "KRAS G12C Mutated", "patients": 18, "mean_os_days": 1561.9, "person_years": 76.97 },
+    { "biomarker": "Wild-Type / Other", "patients": 18, "mean_os_days": 1497.6, "person_years": 73.80 }
+  ]
+}
+
+```
+### Two-Tier Episode Model (SQL)
+
+```sql
+-- Parent Disease Episode (Overall Cancer Timeline)
+INSERT INTO cdm.episode (
+    episode_id, person_id, episode_concept_id, episode_start_date,
+    episode_end_date, episode_parent_id, episode_number,
+    episode_object_concept_id, episode_type_concept_id, episode_source_value
+)
+VALUES (
+    1001, person_id, 32527, diagnosis_date,
+    followup_end_date, NULL, 1,
+    4115276, 32528, 'NSCLC_PRIMARY_DISEASE_EPISODE'
+);
+
+-- Child Treatment Regimen Episode (First-Line Therapy)
+INSERT INTO cdm.episode (
+    episode_id, person_id, episode_concept_id, episode_start_date,
+    episode_end_date, episode_parent_id, episode_number,
+    episode_object_concept_id, episode_type_concept_id, episode_source_value
+)
+VALUES (
+    2001, person_id, 32531, therapy_start_date,
+    therapy_end_date, 1001, 1,
+    32533, 32528, 'FIRST_LINE_ONCOLOGY_REGIMEN'
+);
+
+```
+
+*Code repository and precision oncology scripts maintained at [github.com/harishedu11-hash](https://www.google.com/search?q=https://github.com/harishedu11-hash).*
