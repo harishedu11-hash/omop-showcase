@@ -1,0 +1,184 @@
+[
+  {
+    "objectID": "implementation-2.html",
+    "href": "implementation-2.html",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "",
+    "text": "“Does an affordable first-line diabetes drug protect patients better than insulin, or are we comparing two completely different clinical populations?”"
+  },
+  {
+    "objectID": "implementation-2.html#the-situation",
+    "href": "implementation-2.html#the-situation",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "The Situation",
+    "text": "The Situation\nClinicians need to evaluate whether starting Metformin monotherapy provides superior protection against microvascular complications (kidney and nerve damage) compared to starting Insulin.\nIn observational hospital data, doctors do not prescribe treatments by coin flip. Patients prescribed insulin are often significantly sicker and have longer histories of disease than those started on metformin."
+  },
+  {
+    "objectID": "implementation-2.html#the-challenge",
+    "href": "implementation-2.html#the-challenge",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "The Challenge",
+    "text": "The Challenge\nWhen we emulated a randomized trial using standard 1:1 propensity score caliper matching across 62 patients (47 Metformin vs 15 Insulin), the matching algorithm discarded every patient: * Matched Metformin: 0 * Matched Insulin: 0\nAn audit revealed an empirical positivity violation: * Charlson Comorbidity Index: Baseline difference of -4.15 SMD between groups. * Kidney Disease & Renal Impairment: Baseline difference of -2.71 SMD. Every single insulin patient had pre-existing renal disease, whereas early-stage metformin patients had preserved kidney function. * The two groups had almost zero overlap in treatment probability, causing strict caliper matching to reject the entire dataset."
+  },
+  {
+    "objectID": "implementation-2.html#what-we-built",
+    "href": "implementation-2.html#what-we-built",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "What We Built",
+    "text": "What We Built\nRather than forcing inappropriate comparisons, we adjusted the causal inference strategy using HADES CohortMethod and Cyclops: * Excluded treatment drugs from baseline covariate extraction to prevent statistical model leakage. * Evaluated 432 baseline clinical features using L1 regularized logistic regression. * Switched from rigid 1:1 matching to Propensity Score Stratification (5 balanced risk tiers), comparing patients only against peers within similar baseline comorbidity ranges.\n\n\nBefore: Naive 1:1 Caliper Matching\n\n0 of 62 patients matched (100% data loss).\nCausal model crashed due to zero common support.\nPrescribing bias left unexplained to stakeholders.\n\n\n\nAfter: Propensity Score Stratification\n\n62 of 62 patients retained across 5 clinical tiers.\nQuantified baseline comorbidity disparities for clinical leadership.\nRobust estimation achieved despite narrow clinical overlap.\n\n\n\n\n\n100% (62 / 62)\n\n\nPatient Retention Preserved via Stratification\n\nStatistical stratification preserved the entire study cohort for risk modeling without forcing false clinical equivalence."
+  },
+  {
+    "objectID": "implementation-2.html#baseline-covariate-imbalance-audit",
+    "href": "implementation-2.html#baseline-covariate-imbalance-audit",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "Baseline Covariate Imbalance Audit",
+    "text": "Baseline Covariate Imbalance Audit\n\n\n\n\n\n\n\n\n\n\nBaseline Covariate\nMetformin Mean\nInsulin Mean\nUnadjusted SMD\nBias Classification\n\n\n\n\nCharlson Comorbidity Index (Romano)\n0.85\n4.32\n-4.1533\nSevere Systemic Sickness\n\n\nChronic Kidney Disease (CKD)\n2.1%\n86.7%\n-2.7117\nClinical Contraindication\n\n\nType 2 Diabetes Duration (&gt;3 yrs)\n14.8%\n93.3%\n-2.1042\nDisease Progression Disparity\n\n\nBaseline Antihypertensive Use\n31.9%\n80.0%\n-1.0450\nCardiovascular Risk Disparity"
+  },
+  {
+    "objectID": "implementation-2.html#under-the-hood-statistical-diagnostics",
+    "href": "implementation-2.html#under-the-hood-statistical-diagnostics",
+    "title": "Case 2: Causal Trial Emulation",
+    "section": "Under the Hood: Statistical Diagnostics",
+    "text": "Under the Hood: Statistical Diagnostics\n\nVerified Balance Artifact (tier3_propensity_score_balance.json)\n{\n  \"study_title\": \"Comparative Effectiveness: Metformin vs Insulin (Target Trial Emulation)\",\n  \"sample_sizes\": {\n    \"unadjusted_metformin\": 47,\n    \"unadjusted_insulin\": 15,\n    \"matched_metformin\": 0,\n    \"matched_insulin\": 0,\n    \"stratified_metformin\": 47,\n    \"stratified_insulin\": 15\n  },\n  \"top_imbalanced_covariates\": [\n    {\n      \"covariate_name\": \"Charlson index - Romano adaptation\",\n      \"before_matching_smd\": -4.1533,\n      \"clinical_interpretation\": \"Severe baseline comorbidity bias\"\n    },\n    {\n      \"covariate_name\": \"Chronic kidney disease\",\n      \"before_matching_smd\": -2.7117,\n      \"clinical_interpretation\": \"Metformin contraindication marker\"\n    }\n  ]\n}\n\n\nHADES Cyclops Stratification Pipeline (R)\npsModel &lt;- CohortMethod::createPs(\n  cohortMethodData = cmdData,\n  population = studyPop,\n  stopOnError = FALSE,\n  prior = Cyclops::createPrior(\"laplace\", variance = 1, useCrossValidation = FALSE),\n  control = Cyclops::createControl(tolerance = 1e-05, maxIterations = 1000)\n)\n\nstratifiedPop &lt;- CohortMethod::stratifyByPs(\n  population = psModel,\n  numberOfStrata = 5\n)\nCode repository and causal study scripts maintained at github.com/harishedu11-hash."
+  },
+  {
+    "objectID": "implementation-1.html",
+    "href": "implementation-1.html",
+    "title": "Case 1: Architectural Federation",
+    "section": "",
+    "text": "“How do we allow clinical analytics to run at scale across hospitals without wasting storage duplicating massive medical dictionaries?”"
+  },
+  {
+    "objectID": "implementation-1.html#the-situation",
+    "href": "implementation-1.html#the-situation",
+    "title": "Case 1: Architectural Federation",
+    "section": "The Situation",
+    "text": "The Situation\nTo run OHDSI analytics, an engineering environment requires two core assets: clinical patient tables and the Athena medical vocabulary, a dictionary containing over 10 million concepts and ancestor relationships.\nIn institutional IT, copying gigabytes of vocabulary tables into every single study schema wastes storage and introduces version discrepancies."
+  },
+  {
+    "objectID": "implementation-1.html#the-challenge",
+    "href": "implementation-1.html#the-challenge",
+    "title": "Case 1: Architectural Federation",
+    "section": "The Challenge",
+    "text": "The Challenge\nWe deployed an enterprise architecture in PostgreSQL separating patient data (cdm schema) from the shared vocabulary (vocab schema).\nWhen standard HADES analytical packages ran, queries crashed immediately:\nERROR: relation \"cdm.concept_ancestor\" does not exist\n\nThe analytics packages internally assumed the vocabulary tables were stored directly inside the clinical schema. Copying the tables would have duplicated millions of rows across schemas."
+  },
+  {
+    "objectID": "implementation-1.html#what-we-built",
+    "href": "implementation-1.html#what-we-built",
+    "title": "Case 1: Architectural Federation",
+    "section": "What We Built",
+    "text": "What We Built\nInstead of duplicating tables, we engineered a zero-cost schema federation layer using PostgreSQL relational views:\n\nCreated instant, read-only views inside cdm pointing directly to vocab.\nFully satisfied all HADES and ATLAS query templates without copying a single row.\nOrchestrated the entire stack (PostgreSQL 16, ATLAS 2.13.0, and Broadsea Methods Library) via containerized Docker orchestration.\n\n\n\nBefore: Duplicate Storage & Crashes\n\n10M+ duplicate dictionary rows required per research project.\nHardcoded join failures across decoupled schemas.\nRisk of vocabulary version drift between studies.\n\n\n\nAfter: Zero-Cost Federation\n\n0 bytes of redundant dictionary storage.\n100% compatibility across all HADES R and ATLAS queries.\nCentralized, single-point vocabulary updates.\n\n\n\n\n\n0 Bytes\n\n\nRedundant Storage Overhead\n\nAll 10M+ vocabulary records and ancestor hierarchies were surfaced to the analytical engine without duplicate tables."
+  },
+  {
+    "objectID": "implementation-1.html#schema-federation-verification-results",
+    "href": "implementation-1.html#schema-federation-verification-results",
+    "title": "Case 1: Architectural Federation",
+    "section": "Schema Federation Verification Results",
+    "text": "Schema Federation Verification Results\n\n\n\n\n\n\n\n\n\n\nView Name\nTarget Schema Source\nRecord Count Surfaced\nStorage Footprint\nStatus\n\n\n\n\ncdm.concept\nvocab.concept\n10,240,000+\n0 bytes (Virtual View)\nVerified Active\n\n\ncdm.concept_ancestor\nvocab.concept_ancestor\n54,000,000+\n0 bytes (Virtual View)\nVerified Active\n\n\ncdm.concept_relationship\nvocab.concept_relationship\n28,000,000+\n0 bytes (Virtual View)\nVerified Active\n\n\ncdm.vocabulary\nvocab.vocabulary\n134\n0 bytes (Virtual View)\nVerified Active"
+  },
+  {
+    "objectID": "implementation-1.html#under-the-hood-technical-blueprint",
+    "href": "implementation-1.html#under-the-hood-technical-blueprint",
+    "title": "Case 1: Architectural Federation",
+    "section": "Under the Hood: Technical Blueprint",
+    "text": "Under the Hood: Technical Blueprint\n\nRelational Views Setup (SQL)\nCREATE OR REPLACE VIEW cdm.concept AS SELECT * FROM vocab.concept;\nCREATE OR REPLACE VIEW cdm.concept_ancestor AS SELECT * FROM vocab.concept_ancestor;\nCREATE OR REPLACE VIEW cdm.concept_relationship AS SELECT * FROM vocab.concept_relationship;\nCREATE OR REPLACE VIEW cdm.concept_synonym AS SELECT * FROM vocab.concept_synonym;\nCREATE OR REPLACE VIEW cdm.concept_class AS SELECT * FROM vocab.concept_class;\nCREATE OR REPLACE VIEW cdm.domain AS SELECT * FROM vocab.domain;\nCREATE OR REPLACE VIEW cdm.vocabulary AS SELECT * FROM vocab.vocabulary;\nCREATE OR REPLACE VIEW cdm.relationship AS SELECT * FROM vocab.relationship;\n\n\nDocker Network Verification\ndocker run --rm \\\n  --network atlas_deployment_ohdsi-net \\\n  -v ~/DATAs/atlas_deployment/portfolio_export:/portfolio_export \\\n  ohdsi/broadsea-methodslibrary:latest \\\n  Rscript -e 'library(DatabaseConnector); message(\"HADES Environment Ready\")'\nCode repository and infrastructure scripts maintained at github.com/harishedu11-hash."
+  },
+  {
+    "objectID": "implementation-3.html",
+    "href": "implementation-3.html",
+    "title": "Case 3: Precision Oncology",
+    "section": "",
+    "text": "“Can standard hospital databases track multi-year cancer progression, treatment lines, and gene mutations without losing clinical context?”"
+  },
+  {
+    "objectID": "implementation-3.html#the-situation",
+    "href": "implementation-3.html#the-situation",
+    "title": "Case 3: Precision Oncology",
+    "section": "The Situation",
+    "text": "The Situation\nCancer care is non-linear and longitudinal. A patient diagnosed with Non-Small Cell Lung Cancer (NSCLC) undergoes tumor biopsies, molecular genomic testing, lines of systemic therapy, and extended monitoring.\nTraditional relational databases store these events as disconnected billing entries, obscuring clinical context like treatment line and duration."
+  },
+  {
+    "objectID": "implementation-3.html#the-challenge",
+    "href": "implementation-3.html#the-challenge",
+    "title": "Case 3: Precision Oncology",
+    "section": "The Challenge",
+    "text": "The Challenge\nLegacy health record models struggle with oncology because: 1. Diagnosis codes lack explicit beginning and end dates. 2. Treatment lines (first-line vs second-line) are not explicitly tracked. 3. Molecular alterations (EGFR, KRAS) often remain locked inside free-text pathology reports rather than standardized tables."
+  },
+  {
+    "objectID": "implementation-3.html#what-we-built",
+    "href": "implementation-3.html#what-we-built",
+    "title": "Case 3: Precision Oncology",
+    "section": "What We Built",
+    "text": "What We Built\nWe implemented the OMOP CDM v5.4 Oncology Extension and the mCODE framework: * Modeled disease courses and therapy windows using the cdm.episode table, establishing parent disease episodes and linked child first-line treatment regimen episodes. * Connected diagnosis encounters to episodes through the cdm.episode_event table. * Standardized actionable somatic mutations (EGFR L858R, KRAS G12C, and Wild-Type) in cdm.measurement using international ClinVar concepts. * Built survival pipelines calculating overall survival follow-up from initial diagnosis across genomic cohorts.\n\n\nBefore: Flat Encounter Rows\n\nDiagnosis codes recorded without disease timelines.\nInability to programmatically identify lines of therapy.\nMolecular testing decoupled from cancer outcomes.\n\n\n\nAfter: Two-Tier Episode Hierarchy\n\n28 structured episodes capturing disease and regimen durations.\nActionable ClinVar mutations linked to clinical timelines.\n235.6 total patient-years tracked in survival analysis.\n\n\n\n\n\n235.6 Years\n\n\nFollow-Up Tracked Across Molecular Biomarkers\n\nPatient journeys across EGFR mutated, KRAS mutated, and Wild-Type cohorts tracked cleanly through diagnosis-to-outcome pipelines."
+  },
+  {
+    "objectID": "implementation-3.html#biomarker-stratified-survival-analysis-results",
+    "href": "implementation-3.html#biomarker-stratified-survival-analysis-results",
+    "title": "Case 3: Precision Oncology",
+    "section": "Biomarker-Stratified Survival Analysis Results",
+    "text": "Biomarker-Stratified Survival Analysis Results\nThe survival analysis pipeline evaluated overall survival follow-up across actionable genomic variants:\n\n\n\n\n\n\n\n\n\n\n\nGenomic Biomarker Profile\nClinVar Concept ID\nEvaluated Patients\nMean Follow-Up (Days)\nMedian Follow-Up (Days)\nTotal Person-Years\n\n\n\n\nEGFR L858R Mutated\n35918335\n20\n1,549.0\n1,460.5\n84.82\n\n\nKRAS G12C Mutated\n35918599\n18\n1,561.9\n1,460.5\n76.97\n\n\nWild-Type / Other\n35918231\n18\n1,497.6\n1,096.0\n73.80\n\n\nTotal Population\n—\n56 Records\n1,536.2\n1,460.5\n235.59"
+  },
+  {
+    "objectID": "implementation-3.html#under-the-hood-precision-analytics",
+    "href": "implementation-3.html#under-the-hood-precision-analytics",
+    "title": "Case 3: Precision Oncology",
+    "section": "Under the Hood: Precision Analytics",
+    "text": "Under the Hood: Precision Analytics\n\nVerified Oncology Export (tier4_precision_oncology_genomics.json)\n{\n  \"tier\": \"Tier 4: Precision Oncology & Population Genomics Pipeline\",\n  \"cdm_extension\": \"OMOP CDM v5.4 Oncology & Genomic Extension\",\n  \"oncology_episodes\": {\n    \"cancer_patients\": 14,\n    \"disease_episodes\": 28,\n    \"treatment_episodes\": 28\n  },\n  \"genomic_biomarker_testing\": [\n    { \"biomarker_name\": \"EGFR gene p.Leu858Arg (L858R) mutation\", \"patient_count\": 10 },\n    { \"biomarker_name\": \"KRAS gene p.Gly12Cys (G12C) mutation\", \"patient_count\": 9 },\n    { \"biomarker_name\": \"Biomarker Wild Type / Negative\", \"patient_count\": 9 }\n  ],\n  \"biomarker_stratified_overall_survival\": [\n    { \"biomarker\": \"EGFR L858R Mutated\", \"patients\": 20, \"mean_os_days\": 1549.0, \"person_years\": 84.82 },\n    { \"biomarker\": \"KRAS G12C Mutated\", \"patients\": 18, \"mean_os_days\": 1561.9, \"person_years\": 76.97 },\n    { \"biomarker\": \"Wild-Type / Other\", \"patients\": 18, \"mean_os_days\": 1497.6, \"person_years\": 73.80 }\n  ]\n}\n\n\nTwo-Tier Episode Model (SQL)\n-- Parent Disease Episode (Overall Cancer Timeline)\nINSERT INTO cdm.episode (\n    episode_id, person_id, episode_concept_id, episode_start_date,\n    episode_end_date, episode_parent_id, episode_number,\n    episode_object_concept_id, episode_type_concept_id, episode_source_value\n)\nVALUES (\n    1001, person_id, 32527, diagnosis_date,\n    followup_end_date, NULL, 1,\n    4115276, 32528, 'NSCLC_PRIMARY_DISEASE_EPISODE'\n);\n\n-- Child Treatment Regimen Episode (First-Line Therapy)\nINSERT INTO cdm.episode (\n    episode_id, person_id, episode_concept_id, episode_start_date,\n    episode_end_date, episode_parent_id, episode_number,\n    episode_object_concept_id, episode_type_concept_id, episode_source_value\n)\nVALUES (\n    2001, person_id, 32531, therapy_start_date,\n    therapy_end_date, 1001, 1,\n    32533, 32528, 'FIRST_LINE_ONCOLOGY_REGIMEN'\n);\nCode repository and precision oncology scripts maintained at github.com/harishedu11-hash."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "",
+    "text": "Clinical records live in hundreds of incompatible dialects across thousands of hospitals. By engineering an OMOP Common Data Model foundation, we turned disconnected patient records into reproducible clinical insights.\nLead Engineer: Harish Mohankumar | Platform: OMOP CDM v5.4, PostgreSQL 16, OHDSI ATLAS / WebAPI 2.13.0, HADES (R)"
+  },
+  {
+    "objectID": "index.html#the-multi-billion-dollar-translation-problem",
+    "href": "index.html#the-multi-billion-dollar-translation-problem",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "1. The Multi-Billion-Dollar Translation Problem",
+    "text": "1. The Multi-Billion-Dollar Translation Problem\nEvery clinic, health system, and diagnostic laboratory records patient care differently.\nWhen a clinician in Boston writes that a patient has “Type 2 Diabetes,” the electronic health record might store it as an internal billing code like ICD-10 E11.9. In London, the same condition is logged as an NHS read-code. In Munich, it lives inside an unstructured clinical narrative.\nThe raw data exists, but the systems cannot talk to each other.\nWhen medical leaders need to answer an urgent question, such as “Does Medication A protect diabetic patients from kidney failure better than Medication B?” data engineers spend months per site manually cleaning files and reconciling custom tables. By the time results arrive, budgets are spent and clinical opportunities are lost."
+  },
+  {
+    "objectID": "index.html#the-solution-the-shipping-container-analogy",
+    "href": "index.html#the-solution-the-shipping-container-analogy",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "2. The Solution: The Shipping Container Analogy",
+    "text": "2. The Solution: The Shipping Container Analogy\nBefore 1956, international shipping was slow, fragile, and inefficient. Goods arrived at ports in wooden barrels, woven sacks, and custom crates. Hundreds of dockworkers spent days unpacking and restowing cargo by hand for every unique ship hold.\nGlobal trade changed forever with a single innovation: the intermodal shipping container.\n\nIt does not matter whether a container holds electronics, automotive parts, or fresh fruit. Because the dimensions, steel castings, and crane locking mechanisms are standardized worldwide, any ship can carry it, any crane can hoist it, and any train can haul it without opening the doors.\n\nThe OMOP Common Data Model (CDM) is that shipping container for health data.\nMaintained by the international OHDSI (Observational Health Data Sciences and Informatics) open-science community, OMOP achieves two foundational goals:\n\nStructural Standardization: Every patient, encounter, prescription, diagnosis, and lab result lives in the exact same table with identical column names, everywhere in the world.\nSemantic Standardization: Messy local billing codes and proprietary brand names are mapped into a single, unambiguous concept ID. “Glucophage,” “Metformin Hydrochloride,” and international brand names all map to concept ID 1503297."
+  },
+  {
+    "objectID": "index.html#the-pipeline-from-raw-data-to-causal-answers",
+    "href": "index.html#the-pipeline-from-raw-data-to-causal-answers",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "3. The Pipeline: From Raw Data to Causal Answers",
+    "text": "3. The Pipeline: From Raw Data to Causal Answers\n\n\n\n\n\nflowchart LR\n    A[\"Raw Clinical Records&lt;br/&gt;• Local EHR Tables&lt;br/&gt;• Billing Claims&lt;br/&gt;• Genomic Panels\"] --&gt; B[\"ETL Transformation&lt;br/&gt;• Data Cleansing&lt;br/&gt;• Date Reconciliation&lt;br/&gt;• Deduplication\"]\n    B --&gt; C[\"Athena Vocabularies&lt;br/&gt;• SNOMED (Conditions)&lt;br/&gt;• RxNorm (Drugs)&lt;br/&gt;• ClinVar (Genomics)\"]\n    C --&gt; D[\"OMOP CDM v5.4&lt;br/&gt;• Standard Person&lt;br/&gt;• Standard Drug/Condition&lt;br/&gt;• Episodes & Events\"]\n    D --&gt; E[\"Causal Evidence&lt;br/&gt;• Trial Emulation&lt;br/&gt;• Survival Analysis&lt;br/&gt;• Safety Profiles\"]\n\n\n\n\n\n\n\n\nRaw Records: Hospital claims, doctor visits, and lab panels arrive in disparate formats.\nETL Cleansing: Data pipelines validate date chronologies, remove duplicates, and structure inputs.\nVocabulary Harmonization: Standard medical dictionaries (Athena) map raw strings to certified clinical concepts.\nThe OMOP Database: Data is persisted in a relational store (PostgreSQL) governed by standard integrity rules.\nReproducible Analytics: Standardized HADES statistical packages evaluate causal questions and safety metrics."
+  },
+  {
+    "objectID": "index.html#platform-results-atlas-cohort-mapping",
+    "href": "index.html#platform-results-atlas-cohort-mapping",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "4. Platform Results & ATLAS Cohort Mapping",
+    "text": "4. Platform Results & ATLAS Cohort Mapping\nThe pipeline was verified on our containerized OHDSI ATLAS and WebAPI environment. The table below summarizes the standardized cohorts and vocabulary mapping coverage generated across the CDM:\n\n\n\n\n\n\n\n\n\n\n\nCohort ID\nCohort Name\nTarget Population\nStandard Concept ID\nSource Vocabulary\nVerified Records\n\n\n\n\n101\nMetformin Monotherapy\nTarget Cohort (T)\n1503297\nRxNorm\n47 Patients\n\n\n102\nInsulin Initiation\nComparator Cohort (C)\n1596977\nRxNorm\n15 Patients\n\n\n103\nSevere Hypoglycemia\nPrimary Safety Outcome\n432961\nSNOMED\n38 Events\n\n\n104\nDiabetic Nephropathy\nMicrovascular Endpoint\n4055665\nSNOMED\n29 Events\n\n\n201\nNSCLC Disease Course\nParent Cancer Episode\n4115276\nSNOMED / mCODE\n14 Patients (28 Ep.)"
+  },
+  {
+    "objectID": "index.html#business-payoff",
+    "href": "index.html#business-payoff",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "5. Business Payoff",
+    "text": "5. Business Payoff\n\n\nMonths to Hours\n\n\nTime-to-Evidence Acceleration\n\nOnce health data is transformed to the OMOP CDM, running new epidemiological studies does not require custom SQL engineering. Validated network packages run in hours rather than months.\n\n\nCollaborative Research Without Data Transfer: Institutions join international multi-center studies with millions of patient records without sharing sensitive patient-level rows, fully respecting GDPR and HIPAA boundaries.\nAudit-Proof Data Governance: Automated validation via the OHDSI Data Quality Dashboard (DQD) enforces thousands of consistency, plausibility, and completeness checks.\nReusable Analytical Assets: Every trial emulation, cohort phenotype, and survival analysis script functions as version-controlled code that runs on future database refreshes automatically."
+  },
+  {
+    "objectID": "index.html#explore-the-implementations",
+    "href": "index.html#explore-the-implementations",
+    "title": "Health Data Reimagined: The OMOP CDM Architecture",
+    "section": "6. Explore the Implementations",
+    "text": "6. Explore the Implementations\n\nCase 1: Architecture & Zero-Cost Views — Resolving multi-schema vocabulary federation without duplicating 10M+ dictionary rows.\nCase 2: Causal Trial Emulation — Diagnosing an extreme positivity violation and achieving 100% patient retention through propensity score stratification.\nCase 3: Precision Oncology & Genomics — Modeling 235.6 patient-years of biomarker-stratified lung cancer journeys with OMOP v5.4 EPISODE tables.\n\nMore health data engineering repositories and pipeline code are available at github.com/harishedu11-hash."
+  },
+  {
+    "objectID": "glossary.html",
+    "href": "glossary.html",
+    "title": "Plain-Language Glossary",
+    "section": "",
+    "text": "OMOP (Observational Medical Outcomes Partnership)\nAn international open data standard that defines a common schema and terminology mapping system for organizing health records worldwide.\n\n\nCDM (Common Data Model)\nA standardized database blueprint. Think of it as a universal filing system where patient demographics, drug exposures, and diagnoses live in the exact same tables across every hospital.\n\n\nOHDSI (Observational Health Data Sciences and Informatics)\nA global multi-stakeholder open-science community (spanning academia, industry, and healthcare systems) that maintains the OMOP CDM and develops open-source analytics tools.\n\n\nETL (Extract, Transform, Load)\nThe data engineering process of extracting records from hospital source databases, cleaning anomalies, and transforming them into the OMOP CDM standard structure.\n\n\nAthena Vocabularies\nThe master medical dictionary system used by OMOP. It harmonizes over 10 million clinical codes from systems like SNOMED, RxNorm, LOINC, and ICD-10 into standard concept entries.\n\n\nConcept ID\nA unique integer identifying a precise medical idea. For example, concept ID 1503297 universally represents Metformin, regardless of how a local hospital recorded the prescription.\n\n\nPropensity Score\nA statistical value (from 0 to 1) representing a patient’s probability of receiving a specific treatment given their baseline health characteristics. Used to balance treatment arms in non-randomized observational data.\n\n\nPositivity Violation\nA circumstance in observational data where certain patient profiles have zero real-world probability of receiving a specific treatment (e.g., when a medication is strictly contraindicated for patients with renal disease). Recognizing positivity violations prevents biased or misleading causal comparisons.\n\n\nEpisode Tables (cdm.episode & cdm.episode_event)\nSpecialized tables in OMOP CDM v5.4 that organize individual hospital visits into continuous clinical episodes, such as disease progression timelines or chemotherapy lines of therapy."
+  }
+]
