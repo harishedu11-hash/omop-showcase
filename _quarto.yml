@@ -5,7 +5,7 @@ project:
 website:
   title: "Harish Mohankumar | Health Data Engineering"
   description: "OMOP CDM v5.4, OHDSI Broadsea, and RWE Engineering Portfolio"
-  site-url: "[https://harishedu11-hash.github.io/omop-showcase](https://harishedu11-hash.github.io/omop-showcase)"
+  site-url: "https://harishedu11-hash.github.io/omop-showcase"
   navbar:
     title: "Harish Mohankumar"
     left:
@@ -22,7 +22,7 @@ website:
     right:
       - icon: github
         text: "harishedu11-hash"
-        href: "[https://github.com/harishedu11-hash](https://github.com/harishedu11-hash)"
+        href: "https://github.com/harishedu11-hash"
         aria-label: "GitHub Profile"
 
 format:
